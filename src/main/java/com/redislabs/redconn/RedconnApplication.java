@@ -58,7 +58,7 @@ public class RedconnApplication implements CommandLineRunner {
 		SSLParameters sslParameters = new SSLParameters();
 		sslParameters.setEndpointIdentificationAlgorithm("HTTPS");
 		HostnameVerifier hostnameVerifier = null;
-		GenericObjectPoolConfig<Object> poolConfig = new GenericObjectPoolConfig<>();
+		GenericObjectPoolConfig<redis.clients.jedis.Jedis> poolConfig = new GenericObjectPoolConfig<>();
 		log.info("Connecting using Jedis with {}", config);
 		JedisPool jedisPool = new JedisPool(poolConfig, config.getHost(), config.getPort(),
 				config.getConnectionTimeout(), config.getSocketTimeout(), config.getPassword(), config.getDatabase(),
@@ -105,11 +105,49 @@ public class RedconnApplication implements CommandLineRunner {
 		}
 	}
 
-	private void runLettuce() {
+	private void runLettuce() throws InterruptedException {
 		RedisClient client = RedisClient.create(RedisURI.create(config.getHost(), config.getPort()));
 		client.setOptions(getLettuceClientOptions());
 		StatefulRedisConnection<String, String> connection = client.connect();
-		log.info(connection.sync().info());
+		log.info("Connected to {}", config.getHost());
+		int numKeys = config.getNumKeys();
+		try {
+		for (int index = 0; index < numKeys; index++) {
+			connection.sync().set("key:" + index, "value" + index);
+		}
+
+		while (true) {
+			try {
+				for (int index = 0; index < numKeys; index++) {
+					String value = connection.sync().get("key:" + index);
+					if (value == null || !value.equals("value" + index)) {
+						log.error("Incorrect value returned: " + value);
+					}
+				}
+				log.info("Successfully performed GET on all {} keys", numKeys);
+				Thread.sleep(config.getSleep().getGet());
+			} catch (Exception e) {
+				connection.close();
+				connection = null;
+				log.error("Disconnected");
+				long startTime = System.nanoTime();
+				while (connection == null) {
+					try {
+						log.error("Trying to reconnect");
+						connection = client.connect();
+					} catch (Exception e2) {
+						Thread.sleep(config.getSleep().getReconnect());
+					}
+				}
+				long durationInNanos = System.nanoTime() - startTime;
+				double durationInSec = (double) Duration.ofNanos(durationInNanos).toMillis() / 1000;
+				log.info("Reconnected after {} seconds", String.format("%.3f", durationInSec));
+			}
+		}
+	} finally {
+		connection.close();
+		log.info("Closed");
+	}
 	}
 
 	private ClientOptions getLettuceClientOptions() {
@@ -117,6 +155,7 @@ public class RedconnApplication implements CommandLineRunner {
 		if (config.isSsl()) {
 			builder.sslOptions(getSslOptions());
 		}
+		builder.autoReconnect(true);
 		return builder.build();
 	}
 
