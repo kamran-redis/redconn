@@ -1,6 +1,8 @@
 package com.redislabs.redconn;
 
 import java.io.File;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.security.Security;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -105,7 +107,9 @@ public class RedconnApplication implements CommandLineRunner {
 
 	private void runLettuce() throws InterruptedException {
 		RedisClient client = RedisClient.create(RedisURI.create(config.getHost(), config.getPort()));
-		client.setDefaultTimeout(20, TimeUnit.SECONDS);
+		log.info("IP address for host {} is {}", config.getHost(), getHostAddress(config.getHost()));
+		log.info("Setting Lettuce Default  Timeout={}",  config.getLettuceTimeout());
+		client.setDefaultTimeout(config.getLettuceTimeout(), TimeUnit.SECONDS);
 		client.setOptions(getLettuceClientOptions());
 		StatefulRedisConnection<String, String> connection = client.connect();
 		log.info("Connected to {}", config.getHost());
@@ -128,6 +132,7 @@ public class RedconnApplication implements CommandLineRunner {
 				log.info("Successfully performed GET on all {} keys", numKeys);
 				Thread.sleep(config.getSleep().getGet());
 			} catch (Exception e) {
+
 				connection.close();
 				connection = null;
 				log.error("Disconnected");
@@ -135,6 +140,7 @@ public class RedconnApplication implements CommandLineRunner {
 				while (connection == null) {
 					try {
 						log.error("Trying to reconnect");
+						log.info("IP address for host {} is {}", config.getHost(), getHostAddress(config.getHost()));
 						connection = client.connect();
 					} catch (Exception e2) {
 						Thread.sleep(config.getSleep().getReconnect());
@@ -147,6 +153,7 @@ public class RedconnApplication implements CommandLineRunner {
 		}
 	} finally {
 		connection.close();
+		client.shutdown();
 		log.info("Closed");
 	}
 	}
@@ -190,5 +197,15 @@ public class RedconnApplication implements CommandLineRunner {
 			}
 		}
 		return builder.build();
+	}
+
+	private String getHostAddress(String host) {
+		try {
+
+			InetAddress inetHost = InetAddress.getByName(host);
+			return inetHost.getHostAddress();
+		} catch(UnknownHostException ex) {
+			return "Unknown Host";
+		}
 	}
 }
