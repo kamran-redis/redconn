@@ -3,22 +3,20 @@ package com.redislabs.redconn;
 import java.io.File;
 import java.security.Security;
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
 
+import io.lettuce.core.*;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import io.lettuce.core.ClientOptions;
 import io.lettuce.core.ClientOptions.Builder;
-import io.lettuce.core.RedisClient;
-import io.lettuce.core.RedisURI;
-import io.lettuce.core.SslOptions;
 import io.lettuce.core.api.StatefulRedisConnection;
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
@@ -107,6 +105,7 @@ public class RedconnApplication implements CommandLineRunner {
 
 	private void runLettuce() throws InterruptedException {
 		RedisClient client = RedisClient.create(RedisURI.create(config.getHost(), config.getPort()));
+		client.setDefaultTimeout(20, TimeUnit.SECONDS);
 		client.setOptions(getLettuceClientOptions());
 		StatefulRedisConnection<String, String> connection = client.connect();
 		log.info("Connected to {}", config.getHost());
@@ -123,6 +122,8 @@ public class RedconnApplication implements CommandLineRunner {
 					if (value == null || !value.equals("value" + index)) {
 						log.error("Incorrect value returned: " + value);
 					}
+					log.info("Got key {} ", "key:" + index);
+					Thread.sleep(config.getSleep().getGet());
 				}
 				log.info("Successfully performed GET on all {} keys", numKeys);
 				Thread.sleep(config.getSleep().getGet());
@@ -156,6 +157,7 @@ public class RedconnApplication implements CommandLineRunner {
 			builder.sslOptions(getSslOptions());
 		}
 		builder.autoReconnect(true);
+
 		return builder.build();
 	}
 
