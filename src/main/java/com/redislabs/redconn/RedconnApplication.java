@@ -107,12 +107,17 @@ public class RedconnApplication implements CommandLineRunner {
 
 	private void runLettuce() throws InterruptedException {
 		RedisClient client = RedisClient.create(RedisURI.create(config.getHost(), config.getPort()));
+
 		log.info("IP address for host {} is {}", config.getHost(), getHostAddress(config.getHost()));
-		log.info("Setting Lettuce Default  Timeout={}",  config.getLettuceTimeout());
-		client.setDefaultTimeout(config.getLettuceTimeout(), TimeUnit.SECONDS);
+
+		//Defualt is 60 seconds in lettuce
+		log.info("Setting Lettuce Default  Timeout={}",  config.getSocketTimeout());
+		client.setDefaultTimeout(Duration.ofSeconds(config.getSocketTimeout()));
+
 		client.setOptions(getLettuceClientOptions());
 		StatefulRedisConnection<String, String> connection = client.connect();
 		log.info("Connected to {}", config.getHost());
+
 		int numKeys = config.getNumKeys();
 		try {
 		for (int index = 0; index < numKeys; index++) {
@@ -163,8 +168,18 @@ public class RedconnApplication implements CommandLineRunner {
 		if (config.isSsl()) {
 			builder.sslOptions(getSslOptions());
 		}
-		builder.autoReconnect(true);
+		//default is true in lettuce
+		//builder.autoReconnect(true);
 
+
+		SocketOptions.Builder  socketOptionsBuilder = SocketOptions.builder();
+		//default is 10 seconds in lettue
+		socketOptionsBuilder.connectTimeout(Duration.ofSeconds(config.getConnectionTimeout()));
+		//default is false in lettuce. TODO: do we need this
+		socketOptionsBuilder.keepAlive(true);
+		//default is true
+		//socketOptionsBuilder.tcpNoDelay(true);
+		builder.socketOptions(socketOptionsBuilder.build());
 		return builder.build();
 	}
 

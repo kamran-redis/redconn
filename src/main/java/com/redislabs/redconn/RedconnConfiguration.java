@@ -35,7 +35,6 @@ public class RedconnConfiguration {
 	private int port = 6379;
 	private int connectionTimeout = Protocol.DEFAULT_TIMEOUT;
 	private int socketTimeout = Protocol.DEFAULT_TIMEOUT;
-	private int lettuceTimeout = 60;
 	private boolean ssl;
 	private SslProvider sslProvider = SslProvider.Jdk;
 	private KeystoreConfiguration keystore;
