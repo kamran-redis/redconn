@@ -3,6 +3,10 @@ package com.redislabs.redconn;
 import io.lettuce.core.*;
 import io.lettuce.core.ClientOptions.Builder;
 import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.resource.ClientResources;
+import io.lettuce.core.resource.NettyCustomizer;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.epoll.EpollChannelOption;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -128,7 +132,16 @@ public class RedconnApplication implements CommandLineRunner {
 	}
 
 	private void runLettuce() throws InterruptedException {
-
+		ClientResources clientResources = ClientResources.builder()
+				.nettyCustomizer(new NettyCustomizer() {
+					@Override
+					public void afterBootstrapInitialized(Bootstrap bootstrap) {
+						bootstrap.option(EpollChannelOption.TCP_KEEPIDLE, 15);
+						bootstrap.option(EpollChannelOption.TCP_KEEPINTVL, 5);
+						bootstrap.option(EpollChannelOption.TCP_KEEPCNT, 3);
+					}
+				})
+				.build();
 		RedisClient client = RedisClient.create(RedisURI.create(config.getHost(), config.getPort()));
 		log.info("IP address for host {} is {}", config.getHost(), getHostAddress(config.getHost()));
 
