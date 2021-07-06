@@ -16,7 +16,7 @@ import redis.clients.jedis.Protocol;
 public class RedconnConfiguration {
 
 	public static enum Driver {
-		Jedis, Lettuce
+		Jedis, Lettuce,  DNS
 	}
 
 	public enum SslProvider {
@@ -29,6 +29,7 @@ public class RedconnConfiguration {
 	private int numKeys = 100;
 	private String dnsTtl = "0";
 	private String dnsNegativeTtl = "0";
+	private int dnsSleep = 1000;
 	private int database = 0;
 	private String host = "localhost";
 	private String password;

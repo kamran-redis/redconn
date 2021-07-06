@@ -1,28 +1,25 @@
 package com.redislabs.redconn;
 
-import java.io.File;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.security.Security;
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLSocketFactory;
-
 import io.lettuce.core.*;
+import io.lettuce.core.ClientOptions.Builder;
+import io.lettuce.core.api.StatefulRedisConnection;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-import io.lettuce.core.ClientOptions.Builder;
-import io.lettuce.core.api.StatefulRedisConnection;
-import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSocketFactory;
+import java.io.File;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.security.Security;
+import java.time.Duration;
 
 @SpringBootApplication
 @Slf4j
@@ -44,12 +41,37 @@ public class RedconnApplication implements CommandLineRunner {
 		log.info("Setting {}={}", DNS_CACHE_NEGATIVE_TTL, config.getDnsNegativeTtl());
 		Security.setProperty(DNS_CACHE_NEGATIVE_TTL, config.getDnsNegativeTtl());
 		switch (config.getDriver()) {
-		case Lettuce:
-			runLettuce();
-			break;
-		default:
-			runJedis();
-			break;
+			case Lettuce:
+				runLettuce();
+				break;
+
+			case DNS:
+				runDNS();
+				break;
+
+			default:
+				runJedis();
+				break;
+		}
+	}
+
+	private void runDNS() throws InterruptedException {
+		String previous = null;
+		while(true) {
+			try {
+				String current = getHostAddress(config.getHost());
+				log.info("IP address is {}", current);
+				if (previous == null) {
+					previous = current;
+				}
+				if (!previous.equals(current)) {
+					log.info("IP address changed from {}  to {}", previous, current);
+				}
+				previous = current;
+				Thread.sleep(config.getDnsSleep());
+			} catch (Exception e) {
+				//ignore
+			}
 		}
 	}
 
@@ -106,8 +128,8 @@ public class RedconnApplication implements CommandLineRunner {
 	}
 
 	private void runLettuce() throws InterruptedException {
-		RedisClient client = RedisClient.create(RedisURI.create(config.getHost(), config.getPort()));
 
+		RedisClient client = RedisClient.create(RedisURI.create(config.getHost(), config.getPort()));
 		log.info("IP address for host {} is {}", config.getHost(), getHostAddress(config.getHost()));
 
 		//Defualt is 60 seconds in lettuce
@@ -137,19 +159,18 @@ public class RedconnApplication implements CommandLineRunner {
 				log.info("Successfully performed GET on all {} keys", numKeys);
 				Thread.sleep(config.getSleep().getGet());
 			} catch (Exception e) {
-
-				connection.close();
-				connection = null;
 				log.error("Disconnected");
 				long startTime = System.nanoTime();
-				while (connection == null) {
+				while (true)  {
 					try {
-						log.error("Trying to reconnect");
-						log.info("IP address for host {} is {}", config.getHost(), getHostAddress(config.getHost()));
-						connection = client.connect();
+						log.error("Trying to reconnect....");
+						String  resp  = connection.sync().ping();
+						log.info("Response {}", resp);
+						break;
 					} catch (Exception e2) {
 						Thread.sleep(config.getSleep().getReconnect());
 					}
+
 				}
 				long durationInNanos = System.nanoTime() - startTime;
 				double durationInSec = (double) Duration.ofNanos(durationInNanos).toMillis() / 1000;
