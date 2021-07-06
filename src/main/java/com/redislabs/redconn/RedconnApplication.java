@@ -142,7 +142,7 @@ public class RedconnApplication implements CommandLineRunner {
 					}
 				})
 				.build();
-		RedisClient client = RedisClient.create(RedisURI.create(config.getHost(), config.getPort()));
+		RedisClient client = RedisClient.create(clientResources, RedisURI.create(config.getHost(), config.getPort()));
 		log.info("IP address for host {} is {}", config.getHost(), getHostAddress(config.getHost()));
 
 		//Defualt is 60 seconds in lettuce
