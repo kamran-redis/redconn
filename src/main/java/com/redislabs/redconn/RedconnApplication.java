@@ -132,17 +132,18 @@ public class RedconnApplication implements CommandLineRunner {
 	}
 
 	private void runLettuce() throws InterruptedException {
-		ClientResources clientResources = ClientResources.builder()
+		/*ClientResources clientResources = ClientResources.builder()
 				.nettyCustomizer(new NettyCustomizer() {
 					@Override
 					public void afterBootstrapInitialized(Bootstrap bootstrap) {
-						bootstrap.option(EpollChannelOption.TCP_KEEPIDLE, 15);
-						bootstrap.option(EpollChannelOption.TCP_KEEPINTVL, 5);
-						bootstrap.option(EpollChannelOption.TCP_KEEPCNT, 3);
+						bootstrap.option(EpollChannelOption.TCP_KEEPIDLE, 1);
+						bootstrap.option(EpollChannelOption.TCP_KEEPINTVL, 1);
+						bootstrap.option(EpollChannelOption.TCP_KEEPCNT, 1);
 					}
 				})
 				.build();
-		RedisClient client = RedisClient.create(clientResources, RedisURI.create(config.getHost(), config.getPort()));
+		RedisClient client = RedisClient.create(clientResources, RedisURI.create(config.getHost(), config.getPort()));*/
+		RedisClient client = RedisClient.create(RedisURI.create(config.getHost(), config.getPort()));
 		log.info("IP address for host {} is {}", config.getHost(), getHostAddress(config.getHost()));
 
 		//Defualt is 60 seconds in lettuce
