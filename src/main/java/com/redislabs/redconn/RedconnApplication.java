@@ -7,6 +7,8 @@ import io.lettuce.core.resource.ClientResources;
 import io.lettuce.core.resource.NettyCustomizer;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.epoll.EpollChannelOption;
+import io.netty.channel.socket.nio.NioChannelOption;
+import jdk.net.ExtendedSocketOptions;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -136,9 +138,12 @@ public class RedconnApplication implements CommandLineRunner {
 				.nettyCustomizer(new NettyCustomizer() {
 					@Override
 					public void afterBootstrapInitialized(Bootstrap bootstrap) {
-						bootstrap.option(EpollChannelOption.TCP_KEEPIDLE, 1);
-						bootstrap.option(EpollChannelOption.TCP_KEEPINTVL, 1);
-						bootstrap.option(EpollChannelOption.TCP_KEEPCNT, 1);
+						bootstrap.option(EpollChannelOption.TCP_KEEPIDLE, 10);
+						bootstrap.option(EpollChannelOption.TCP_KEEPINTVL, 2);
+						bootstrap.option(EpollChannelOption.TCP_KEEPCNT, 2);
+						bootstrap.option(NioChannelOption.of(ExtendedSocketOptions.TCP_KEEPIDLE), 10);
+						bootstrap.option(NioChannelOption.of(ExtendedSocketOptions.TCP_KEEPINTERVAL), 2);
+						bootstrap.option(NioChannelOption.of(ExtendedSocketOptions.TCP_KEEPCOUNT), 2);
 					}
 				})
 				.build();
@@ -212,6 +217,10 @@ public class RedconnApplication implements CommandLineRunner {
 		socketOptionsBuilder.connectTimeout(Duration.ofSeconds(config.getConnectionTimeout()));
 		//default is false in lettuce. TODO: do we need this
 		socketOptionsBuilder.keepAlive(true);
+		SocketOptions.KeepAliveOptions.Builder keepAliveBuilder = SocketOptions.KeepAliveOptions.builder();
+		keepAliveBuilder.count(2).enable(true).idle(Duration.ofSeconds(15)).interval(Duration.ofSeconds(2));
+		socketOptionsBuilder.keepAlive(keepAliveBuilder.build());
+
 		//default is true
 		//socketOptionsBuilder.tcpNoDelay(true);
 		builder.socketOptions(socketOptionsBuilder.build());
