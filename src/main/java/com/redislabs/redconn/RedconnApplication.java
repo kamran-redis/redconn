@@ -3,12 +3,6 @@ package com.redislabs.redconn;
 import io.lettuce.core.*;
 import io.lettuce.core.ClientOptions.Builder;
 import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.resource.ClientResources;
-import io.lettuce.core.resource.NettyCustomizer;
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.epoll.EpollChannelOption;
-import io.netty.channel.socket.nio.NioChannelOption;
-import jdk.net.ExtendedSocketOptions;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -148,6 +142,7 @@ public class RedconnApplication implements CommandLineRunner {
 				})
 				.build();
 		RedisClient client = RedisClient.create(clientResources, RedisURI.create(config.getHost(), config.getPort()));*/
+
 		RedisClient client = RedisClient.create(RedisURI.create(config.getHost(), config.getPort()));
 		log.info("IP address for host {} is {}", config.getHost(), getHostAddress(config.getHost()));
 
@@ -210,16 +205,20 @@ public class RedconnApplication implements CommandLineRunner {
 		}
 		//default is true in lettuce
 		//builder.autoReconnect(true);
-
-
 		SocketOptions.Builder  socketOptionsBuilder = SocketOptions.builder();
 		//default is 10 seconds in lettue
 		socketOptionsBuilder.connectTimeout(Duration.ofSeconds(config.getConnectionTimeout()));
-		//default is false in lettuce. TODO: do we need this
+
 		socketOptionsBuilder.keepAlive(true);
-		SocketOptions.KeepAliveOptions.Builder keepAliveBuilder = SocketOptions.KeepAliveOptions.builder();
-		keepAliveBuilder.count(2).enable(true).idle(Duration.ofSeconds(15)).interval(Duration.ofSeconds(2));
-		socketOptionsBuilder.keepAlive(keepAliveBuilder.build());
+		/**
+		 * SocketOptions.KeepAliveOptions is only available from lettuce 6.1 use Linux OS settting
+		 * echo 15 > /proc/sys/net/ipv4/tcp_keepalive_time
+		 * echo 2 > /proc/sys/net/ipv4/tcp_keepalive_intvl
+		 * echo 2 > /proc/sys/net/ipv4/tcp_keepalive_probes
+		 */
+		//SocketOptions.KeepAliveOptions.Builder keepAliveBuilder = SocketOptions.KeepAliveOptions.builder();
+		//keepAliveBuilder.count(2).enable(true).idle(Duration.ofSeconds(15)).interval(Duration.ofSeconds(2));
+		//socketOptionsBuilder.keepAlive(keepAliveBuilder.build());
 
 		//default is true
 		//socketOptionsBuilder.tcpNoDelay(true);
