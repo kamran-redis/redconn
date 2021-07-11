@@ -2,7 +2,8 @@ import sys
 import socket
 import traceback
 import time
-
+#nc -v -l  -p 8081
+#python keepalive.py
 def do_work():
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

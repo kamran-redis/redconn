@@ -2,7 +2,7 @@ import argparse
 import socket
 import time
 from datetime import datetime
-
+# python3.9 failover_client.py  --host redis-12000.k1.demo.redislabs.com  --port 12000
 class TestClient(object):
     def __init__(self, args):
         self.host = args.host
