@@ -37,6 +37,8 @@ public class RedconnConfiguration {
 	private int connectionTimeout = Protocol.DEFAULT_TIMEOUT;
 	private int socketTimeout = Protocol.DEFAULT_TIMEOUT;
 	private boolean ssl;
+	private long getSleep = 100;
+	private long reconnectSleep = 100;
 	private SslProvider sslProvider = SslProvider.Jdk;
 	private KeystoreConfiguration keystore;
 	private TruststoreConfiguration truststore;

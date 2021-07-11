@@ -104,7 +104,7 @@ public class RedconnApplication implements CommandLineRunner {
 					if (log.isDebugEnabled()) {
 						log.debug("Successfully performed GET on all {} keys", numKeys);
 					}
-					Thread.sleep(config.getSleep().getGet());
+					Thread.sleep(config.getGetSleep());
 				} catch (Exception e) {
 					jedis.close();
 					jedis = null;
@@ -114,7 +114,7 @@ public class RedconnApplication implements CommandLineRunner {
 						try {
 							jedis = jedisPool.getResource();
 						} catch (Exception e2) {
-							Thread.sleep(config.getSleep().getReconnect());
+							Thread.sleep(config.getReconnectSleep());
 						}
 					}
 					long durationInNanos = System.nanoTime() - startTime;
@@ -169,10 +169,10 @@ public class RedconnApplication implements CommandLineRunner {
 						log.error("Incorrect value returned: " + value);
 					}
 					log.info("Got key {} ", "key:" + index);
-					Thread.sleep(config.getSleep().getGet());
+					Thread.sleep(config.getGetSleep());
 				}
 				log.info("Successfully performed GET on all {} keys", numKeys);
-				Thread.sleep(config.getSleep().getGet());
+				Thread.sleep(config.getGetSleep());
 			} catch (Exception e) {
 				log.error("Disconnected");
 				long startTime = System.nanoTime();
@@ -183,7 +183,7 @@ public class RedconnApplication implements CommandLineRunner {
 						log.info("Response {}", resp);
 						break;
 					} catch (Exception e2) {
-						Thread.sleep(config.getSleep().getReconnect());
+						Thread.sleep(config.getReconnectSleep());
 					}
 
 				}
