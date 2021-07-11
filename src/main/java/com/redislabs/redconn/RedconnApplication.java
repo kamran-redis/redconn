@@ -36,6 +36,7 @@ public class RedconnApplication implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
+		log.info("Straring version 1");
 		log.info("Setting {}={}", DNS_CACHE_TTL, config.getDnsTtl());
 		Security.setProperty(DNS_CACHE_TTL, config.getDnsTtl());
 		log.info("Setting {}={}", DNS_CACHE_NEGATIVE_TTL, config.getDnsNegativeTtl());
